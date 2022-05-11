@@ -34,6 +34,7 @@ import android.location.LocationManager;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import net.daum.mf.map.api.MapPOIItem;
 
 import android.widget.Toast;
 import android.widget.Button;
@@ -46,7 +47,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     private static final String LOG_TAG = "MainActivity";
 
-
+    public double lat;
+    public double lng;
     private ViewGroup mapViewContainer;
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int PERMISSIONS_REQUEST_CODE = 100;
@@ -67,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapView.setMapViewEventListener(this);
 
 
+
         //트래킹 모드
         //mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
 
@@ -84,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
         //Achieve
         Achieve achieve = new Achieve();
+        achieve.Information(mapView);
 
         //텍스트뷰 (테스트)
         TextView textView1 = (TextView) findViewById(R.id.text1);
@@ -175,8 +179,8 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint currentLocation, float accuracyInMeters) {
         MapPoint.GeoCoordinate mapPointGeo = currentLocation.getMapPointGeoCoord();
-        double lat = mapPointGeo.latitude;
-        double lng = mapPointGeo.longitude;
+        lat = mapPointGeo.latitude;
+        lng = mapPointGeo.longitude;
         Log.i(LOG_TAG, String.format("MapView onCurrentLocationUpdate (%f,%f) accuracy (%f)", mapPointGeo.latitude, mapPointGeo.longitude, accuracyInMeters));
 
     }
@@ -362,18 +366,46 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 class Achieve {
     //lat 가져다 쓰고 싶은 클래스
     //+-0.0002
-    double[] baselat={37.88168,37.88937};
-    double[] baselng={127.73467,127.73469};
-    double lat1;
-    double lng1;
+    MainActivity a = new MainActivity();
+    double lat1 = a.lat;
+    double lng1 = a.lng;
 
 
+    //정상 좌표 (임시)
+    double startlat=37.88168;
+    double startlng=127.73467;
+    double endlat=37.88168;
+    double endlng=127.73467;
+
+    //업적확인
     public void AchieveCheck() {
-        for (int i = 0; i<baselat.length;i++){
-            if (lng1&&lat1 == baselat&&baselng ){
+
+        if (lat1 >= startlat-0.003  && lat1 <= startlat+0.003 ){
+            if (lng1 >= startlng-0.003  && lng1 <= startlng+0.003 ){
+                //등산 시작
+                double startinglat = lat1;
+                double startinglng = lng1;
+
+
+
+
 
             }
+
         }
+
+    }
+    //산 정보
+    public void Information(MapView mapView) {
+        //setPOIItemEventListener 마커클릭시 이벤트
+        MapPOIItem marker = new MapPOIItem();
+        MapPoint MARKER_POINT1 = MapPoint.mapPointWithGeoCoord(37.88937, 127.73469);
+        marker.setItemName("봉의산");
+        marker.setTag(0);
+        marker.setMapPoint(MARKER_POINT1);
+        marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
+        marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
+        mapView.addPOIItem(marker);
     }
 }
 
