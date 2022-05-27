@@ -21,8 +21,19 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginLeft="360dp"
-                android:layout_marginTop="670dp"
+                android:layout_marginTop="620dp"
                 android:background="@drawable/ic_baseline_location_searching_24" />
+
+            <Button
+                android:id="@+id/navigator"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="360dp"
+                android:layout_marginTop="670dp"
+                android:background="@drawable/ic_round_landscape_black"/>
+
+
+
 
 
         </RelativeLayout>

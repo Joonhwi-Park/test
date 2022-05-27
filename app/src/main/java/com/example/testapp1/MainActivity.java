@@ -5,9 +5,16 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
+import android.content.Intent;
 import android.graphics.Color;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.location.Geocoder;
 import android.os.Bundle;
 
 import net.daum.mf.map.api.MapPoint;
@@ -18,8 +25,11 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup; //뷰 그룹 임포트
 import android.widget.TextView;
+
 import androidx.appcompat.widget.SearchView;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
@@ -27,19 +37,20 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
+
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.location.Location;
+import android.location.LocationListener;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
 import net.daum.mf.map.api.MapPOIItem;
 
 import android.widget.Toast;
 import android.widget.Button;
-
-
 
 
 public class MainActivity extends AppCompatActivity implements MapView.CurrentLocationEventListener, MapView.MapViewEventListener {
@@ -47,13 +58,13 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     private static final String LOG_TAG = "MainActivity";
 
-    public double lat;
-    public double lng;
+    private GpsTracker gpsTracker;
+
     private ViewGroup mapViewContainer;
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int PERMISSIONS_REQUEST_CODE = 100;
     String[] REQUIRED_PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION};
-    private int ButtonCount = 0;
+    private int ButtonCount = 0, ButtonCount2 = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         mapViewContainer.addView(mapView);
 
         mapView.setMapViewEventListener(this);
-
 
 
         //트래킹 모드
@@ -85,9 +95,9 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
         PolylineSeter polylineSeter = new PolylineSeter();
 
 
-        //Achieve
-        Achieve achieve = new Achieve();
-        achieve.Information(mapView);
+        //Inform
+        InformMarker inform = new InformMarker();
+        inform.Information(mapView);
 
         //텍스트뷰 (테스트)
         TextView textView1 = (TextView) findViewById(R.id.text1);
@@ -109,20 +119,32 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                 return false;
             }
         });
+
+
+        //퍼미션
+        if (!checkLocationServicesStatus()) {
+
+            showDialogForLocationServiceSetting();
+        }else {
+
+            checkRunTimePermission();
+        }
+
+
         //button
         findViewById(R.id.location).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Button location = (Button) findViewById(R.id.location);
+                Button location1 = (Button) findViewById(R.id.location);
 
                 if (ButtonCount % 3 == 0) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    //AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
-                    builder.setTitle("1").setMessage("현재위치");
+                    //builder.setTitle("1").setMessage("현재위치");
 
-                    AlertDialog alertDialog = builder.create();
+                    //AlertDialog alertDialog = builder.create();
 
-                    alertDialog.show();
+                    //alertDialog.show();
 
                     mapView.setShowCurrentLocationMarker(true);
                     mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithoutHeading);
@@ -131,17 +153,18 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                     } else {
                         checkRunTimePermission();
                     }
-                    location.setBackgroundResource(R.drawable.ic_baseline_my_location_24);
+                    location1.setBackgroundResource(R.drawable.ic_baseline_my_location_24);
 
+                    ButtonCount++;
 
                 } else if (ButtonCount % 3 == 1) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    //AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
-                    builder.setTitle("2").setMessage("현재위치와방향");
+                    //builder.setTitle("2").setMessage("현재위치와방향");
 
-                    AlertDialog alertDialog = builder.create();
+                    //AlertDialog alertDialog = builder.create();
 
-                    alertDialog.show();
+                    //alertDialog.show();
 
                     mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOnWithHeading);
                     if (!checkLocationServicesStatus()) {
@@ -149,26 +172,111 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
                     } else {
                         checkRunTimePermission();
                     }
+                    ButtonCount++;
                 } else {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    //AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
-                    builder.setTitle("3").setMessage("지도중심");
+                    //builder.setTitle("3").setMessage("지도중심");
 
-                    AlertDialog alertDialog = builder.create();
+                    //AlertDialog alertDialog = builder.create();
 
-                    alertDialog.show();
+                    //alertDialog.show();
 
                     mapView.setCurrentLocationTrackingMode(MapView.CurrentLocationTrackingMode.TrackingModeOff);
                     mapView.setShowCurrentLocationMarker(false);
-                    location.setBackgroundResource(R.drawable.ic_baseline_location_searching_24);
+                    location1.setBackgroundResource(R.drawable.ic_baseline_location_searching_24);
+                    ButtonCount++;
                 }
-                ButtonCount++;
+                //ButtonCount++;
             }
 
         });
 
+        LocationManager lm1 = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Intent intent = new Intent(getApplicationContext(), AchieveDialog.class);
 
+
+        findViewById(R.id.navigator).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Button navigator = (Button) findViewById(R.id.navigator);
+
+                if (ButtonCount2 % 2 == 0) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    if (!checkLocationServicesStatus()) {
+                        showDialogForLocationServiceSetting();
+                    } else {
+                        checkRunTimePermission();
+                    }
+                    gpsTracker = new GpsTracker(MainActivity.this);
+
+
+                    final double startlng = gpsTracker.getLongitude();
+                    final double startlat = gpsTracker.getLatitude();
+
+                    builder.setTitle("등산정보기록").setMessage("등산을 시작합니다.");
+                    AlertDialog alertDialog = builder.create();
+                    alertDialog.show();
+
+                    navigator.setBackgroundResource(R.drawable.ic_round_landscape_24);
+                    ButtonCount2++;
+
+                    intent.putExtra("startlng",startlng);
+                    intent.putExtra("startlat",startlat);
+                    final long startdate =System.currentTimeMillis();
+                    intent.putExtra("startdate",startdate);
+
+                }
+
+                else{
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+                    if (!checkLocationServicesStatus()) {
+                        showDialogForLocationServiceSetting();
+                    } else {
+                        checkRunTimePermission();
+                    }
+
+                    gpsTracker = new GpsTracker(MainActivity.this);
+                    final double endlng = gpsTracker.getLongitude();
+                    final double endlat = gpsTracker.getLatitude();
+                    builder.setTitle("등산정보기록").setMessage("등산을 종료합니다.");
+                    AlertDialog alertDialog = builder.create();
+                    alertDialog.show();
+
+
+                    navigator.setBackgroundResource(R.drawable.ic_round_landscape_black);
+
+
+                    intent.putExtra("endlng",endlng);
+                    intent.putExtra("endlat",endlat);
+
+                    final long enddate =System.currentTimeMillis();
+                    intent.putExtra("enddate",enddate);
+                    startActivityForResult(intent,1);
+
+
+                    ButtonCount2++;
+
+
+
+
+                }
+            }
+        });
     }
+
+/*
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode==1){
+            if(resultCode==RESULT_OK){
+                String result = data.getStringExtra("result");
+                txtResult.setText(result);
+            }
+        }
+    }
+*/
 
     @Override
     protected void onDestroy() {
@@ -179,8 +287,6 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     @Override
     public void onCurrentLocationUpdate(MapView mapView, MapPoint currentLocation, float accuracyInMeters) {
         MapPoint.GeoCoordinate mapPointGeo = currentLocation.getMapPointGeoCoord();
-        lat = mapPointGeo.latitude;
-        lng = mapPointGeo.longitude;
         Log.i(LOG_TAG, String.format("MapView onCurrentLocationUpdate (%f,%f) accuracy (%f)", mapPointGeo.latitude, mapPointGeo.longitude, accuracyInMeters));
 
     }
@@ -198,11 +304,11 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
     }
 
 
-    private void onFinishReverseGeoCoding(String result) {
-//        Toast.makeText(LocationDemoActivity.this, "Reverse Geo-coding : " + result, Toast.LENGTH_SHORT).show();
+   /* private void onFinishReverseGeoCoding(String result) {
+    //Toast.makeText(LocationDemoActivity.this, "Reverse Geo-coding : " + result, Toast.LENGTH_SHORT).show();
     }
 
-    // ActivityCompat.requestPermissions를 사용한 퍼미션 요청의 결과를 리턴받는 메소드
+    // ActivityCompat.requestPermissions를 사용한 퍼미션 요청의 결과를 리턴받는 메소드*/
     @Override
     public void onRequestPermissionsResult(int permsRequestCode,
                                            @NonNull String[] permissions,
@@ -309,11 +415,11 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
 
     public boolean checkLocationServicesStatus() {
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
 
 
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-                || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        return lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
 
     }
@@ -363,9 +469,18 @@ public class MainActivity extends AppCompatActivity implements MapView.CurrentLo
 
     }
 }
-class Achieve {
+
+
+
+class InformMarker {
+
+
+
+
+    /*
     //lat 가져다 쓰고 싶은 클래스
     //+-0.0002
+
     MainActivity a = new MainActivity();
     double lat1 = a.lat;
     double lng1 = a.lng;
@@ -395,6 +510,45 @@ class Achieve {
         }
 
     }
+
+    private List<Item> parse(String jsonString){
+
+        List<item> itemList = new ArrayList<Item>();
+        try{
+            JSONObject reder = new JSONObject(jsonString);
+            JSONArray objects = reder.getJSONArray("mountains");
+
+            for(int i =0;i<objects.length(); i++){
+                JSONObject object = objects.getJSONObject(i);
+                //item 클래스에 json 데이터 할당.
+                Item item = new Item();
+                item.place_name = object.getString("place_name");
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+        return itemList;
+
+
+
+            for (int i = 1; i < itemList.size(); i++) {
+            //마커와 CalloutBallon을 설정하기 위한 옵션들.
+            Item item = itemList.get(i);
+            MapPOIItem poiItem = new MapPOIItem();
+            poiItem.setTag(i);
+            //길 찾기 기능 설정을 위해 해당 POI(관심지점) 객체에 mapPoint(경위도 좌표 값)를 등록.
+            MapPoint mapPoint = MapPoint.mapPointWithGeoCoord(item.latitude, item.longitude);
+            poiItem.setMapPoint(mapPoint);
+
+            MapView.addPOIItem(poiItem);
+            mTagItemMap.put(poiItem.getTag(), item);
+
+
+        }
+
+
+    }*/
     //산 정보
     public void Information(MapView mapView) {
         //setPOIItemEventListener 마커클릭시 이벤트
@@ -406,6 +560,10 @@ class Achieve {
         marker.setMarkerType(MapPOIItem.MarkerType.BluePin); // 기본으로 제공하는 BluePin 마커 모양.
         marker.setSelectedMarkerType(MapPOIItem.MarkerType.RedPin); // 마커를 클릭했을때, 기본으로 제공하는 RedPin 마커 모양.
         mapView.addPOIItem(marker);
+
+
+
+
     }
 }
 
@@ -543,7 +701,6 @@ class SearchParser {
         return searchCoords;
     }
 }
-
 
 class CoorData {
     String[] Coords;
