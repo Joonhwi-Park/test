@@ -14,6 +14,8 @@ import android.widget.Toast;
 import android.content.Intent;
 import androidx.annotation.NonNull;
 
+import java.util.ArrayList;
+
 
 public class AchieveDialog extends Activity {
 
@@ -53,7 +55,28 @@ public class AchieveDialog extends Activity {
         long kcal = (time*7);
 
 
+        ArrayList<String> list = new ArrayList<>();
+        list.add("봉의산1");
+        list.add("봉의산2");
+        list.add("봉의산3");
+        list.add("봉의산4");
+        list.add("봉의산5");
 
+//업적확인
+ /*
+        int userachieve = 0;
+
+        for (int i=0; i<=db_mountain; i++) {
+            if (startln = db_mountain(i) && startla =db_mountain(i)) {
+                if (startln = db_mountain(i) && startla =db_mountain(i)){
+                    userachieve = i;
+
+
+                }
+            }
+        }
+
+ */
 
 
         //UI객체생성
